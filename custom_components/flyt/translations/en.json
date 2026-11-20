@@ -3,13 +3,18 @@
     "step": {
       "user": {
         "title": "Flyt MinSide",
-        "description": "Log in with the e-mail and password of a Flyt MinSide user (not BankID). You can give an e-mail user access under MinSide > Access management.",
-        "data": { "email": "E-mail", "password": "Password" }
+        "description": "Log in with the e-mail and password of a Flyt MinSide user (not BankID). If you normally use BankID you probably have no password user: register one under \"Don't have BankID?\" > \"Sign up now\" on the MinSide login page, then choose \"Finn avtale\" to link it to your existing Flyt customer. See the README for details.",
+        "data": {
+          "email": "E-mail",
+          "password": "Password"
+        }
       },
       "reauth_confirm": {
         "title": "Log in to Flyt again",
         "description": "Enter the password for {email}.",
-        "data": { "password": "Password" }
+        "data": {
+          "password": "Password"
+        }
       }
     },
     "error": {
@@ -27,18 +32,32 @@
     "step": {
       "init": {
         "title": "Flyt options",
-        "data": { "scan_interval": "Polling interval (minutes)" }
+        "data": {
+          "scan_interval": "Polling interval (minutes)"
+        }
       }
     }
   },
   "entity": {
     "sensor": {
-      "last_passing": { "name": "Last passing" },
-      "last_station": { "name": "Last toll station" },
-      "last_price": { "name": "Last passing price" },
-      "month_cost": { "name": "Tolls this month" },
-      "month_count": { "name": "Passings this month" },
-      "balance": { "name": "Account balance" }
+      "last_passing": {
+        "name": "Last passing"
+      },
+      "last_station": {
+        "name": "Last toll station"
+      },
+      "last_price": {
+        "name": "Last passing price"
+      },
+      "month_cost": {
+        "name": "Tolls this month"
+      },
+      "month_count": {
+        "name": "Passings this month"
+      },
+      "balance": {
+        "name": "Account balance"
+      }
     }
   }
 }

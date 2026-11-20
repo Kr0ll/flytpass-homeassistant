@@ -29,9 +29,35 @@ nettsiden får utdelt utløper etter 24 timer. Integrasjonen logger derfor inn
 med **e-post og passord**, slik "Har du ikke BankID? Trykk her" gjør på
 innloggingssiden. Den fornyer tokenet selv og logger inn på nytt ved behov.
 
-Brukeren må ha tilgang til kundeforholdet. Det gir du under
-**MinSide → Tilgangsstyring → Gi tilgang**. Har du glemt passordet til
-e-postbrukeren, kan du nullstille det via "Glemt passord" på innloggingssiden.
+### Skaffe en e-postbruker med passord
+
+Har du en e-postbruker med passord fra før, kan du bruke den direkte. Har du
+glemt passordet, kan du nullstille det via **Har du ikke BankID? Trykk her →
+Har du glemt passordet?** på innloggingssiden.
+
+**Logger du vanligvis inn med BankID, har du sannsynligvis ingen
+e-postbruker med passord.** Nullstillingen kan da ikke sette et passord.
+Den sender riktignok en kode på e-post, men etterpå blir du bare sendt
+tilbake eller logget inn uten å ha fått velge passord. Lag i stedet en ny
+bruker:
+
+1. Gå til [MinSide](https://minside-flyt.flytpass.no) og trykk
+   **Har du ikke BankID? Trykk her → Registrer deg nå**.
+2. Registrer deg med e-postadressen din, bekreft koden du får på e-post, og
+   velg et passord.
+3. Når du er logget inn med den nye brukeren, kommer du til siden **Kunder**.
+   Velg **Finn avtale** («aktivere tilgang til eksisterende kundeforhold») og
+   følg trinnene for å koble den nye brukeren til Flyt-kontoen din.
+4. Bruk denne e-postadressen og dette passordet når du legger til
+   integrasjonen i Home Assistant.
+
+Du kan også gi en e-postbruker tilgang fra BankID-brukeren under
+**MinSide → Tilgangsstyring → Gi tilgang**. Åpner du aktiveringslenken, må du
+da logge inn med e-post og passord, ikke BankID. Ellers blir tilgangen koblet
+til BankID-brukeren.
+
+Du kan teste innloggingen uten Home Assistant med `test_flyt.py` (se
+[Test uten Home Assistant](#test-uten-home-assistant)).
 
 ## Installasjon
 

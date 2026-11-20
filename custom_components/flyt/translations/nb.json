@@ -3,13 +3,18 @@
     "step": {
       "user": {
         "title": "Flyt MinSide",
-        "description": "Logg inn med e-post og passord for en bruker på Flyt MinSide (ikke BankID). Du kan gi en e-postbruker tilgang under MinSide > Tilgangsstyring.",
-        "data": { "email": "E-post", "password": "Passord" }
+        "description": "Logg inn med e-post og passord for en bruker på Flyt MinSide (ikke BankID). Bruker du vanligvis BankID, har du sannsynligvis ingen bruker med passord. Registrer en under «Har du ikke BankID?» > «Registrer deg nå» på innloggingssiden til MinSide, og velg deretter «Finn avtale» for å koble den til Flyt-kontoen din. Se README for detaljer.",
+        "data": {
+          "email": "E-post",
+          "password": "Passord"
+        }
       },
       "reauth_confirm": {
         "title": "Logg inn på Flyt på nytt",
         "description": "Skriv inn passordet for {email}.",
-        "data": { "password": "Passord" }
+        "data": {
+          "password": "Passord"
+        }
       }
     },
     "error": {
@@ -27,18 +32,32 @@
     "step": {
       "init": {
         "title": "Flyt-innstillinger",
-        "data": { "scan_interval": "Oppdateringsintervall (minutter)" }
+        "data": {
+          "scan_interval": "Oppdateringsintervall (minutter)"
+        }
       }
     }
   },
   "entity": {
     "sensor": {
-      "last_passing": { "name": "Siste passering" },
-      "last_station": { "name": "Siste bomstasjon" },
-      "last_price": { "name": "Pris siste passering" },
-      "month_cost": { "name": "Bompenger denne måneden" },
-      "month_count": { "name": "Passeringer denne måneden" },
-      "balance": { "name": "Saldo" }
+      "last_passing": {
+        "name": "Siste passering"
+      },
+      "last_station": {
+        "name": "Siste bomstasjon"
+      },
+      "last_price": {
+        "name": "Pris siste passering"
+      },
+      "month_cost": {
+        "name": "Bompenger denne måneden"
+      },
+      "month_count": {
+        "name": "Passeringer denne måneden"
+      },
+      "balance": {
+        "name": "Saldo"
+      }
     }
   }
 }
