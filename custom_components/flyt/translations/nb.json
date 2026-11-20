@@ -1,0 +1,44 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Flyt MinSide",
+        "description": "Logg inn med e-post og passord for en bruker på Flyt MinSide (ikke BankID). Du kan gi en e-postbruker tilgang under MinSide > Tilgangsstyring.",
+        "data": { "email": "E-post", "password": "Passord" }
+      },
+      "reauth_confirm": {
+        "title": "Logg inn på Flyt på nytt",
+        "description": "Skriv inn passordet for {email}.",
+        "data": { "password": "Passord" }
+      }
+    },
+    "error": {
+      "invalid_auth": "Feil e-post eller passord.",
+      "cannot_connect": "Klarte ikke å koble til Flyt.",
+      "no_customers": "Innloggingen fungerte, men brukeren har ikke tilgang til noen Flyt-kunde.",
+      "unknown": "Uventet feil, se loggen."
+    },
+    "abort": {
+      "already_configured": "Denne brukeren er allerede satt opp.",
+      "reauth_successful": "Innloggingen er oppdatert."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Flyt-innstillinger",
+        "data": { "scan_interval": "Oppdateringsintervall (minutter)" }
+      }
+    }
+  },
+  "entity": {
+    "sensor": {
+      "last_passing": { "name": "Siste passering" },
+      "last_station": { "name": "Siste bomstasjon" },
+      "last_price": { "name": "Pris siste passering" },
+      "month_cost": { "name": "Bompenger denne måneden" },
+      "month_count": { "name": "Passeringer denne måneden" },
+      "balance": { "name": "Saldo" }
+    }
+  }
+}
