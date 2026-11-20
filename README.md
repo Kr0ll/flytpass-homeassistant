@@ -61,7 +61,7 @@ Du kan teste innloggingen uten Home Assistant med `test_flyt.py` (se
 
 ## Installasjon
 
-### Med HACS (anbefalt)
+### Med HACS – Home Assistant Community Store (anbefalt)
 
 1. I Home Assistant: **HACS → ⋮ (øverst til høyre) → Egendefinerte repositorier**.
 2. Lim inn `https://github.com/Kr0ll/flytpass-homeassistant` og velg kategori
@@ -87,12 +87,46 @@ Assistant på nytt og legg til integrasjonen som over.
 | Siste bomstasjon | Navn på stasjonen |
 | Pris siste passering | NOK |
 | Bompenger denne måneden | Sum NOK, nullstilles den 1. |
-| Passeringer denne måneden | Antall |
+| Passeringer denne måneden | Antall (attributt `passings`: hele månedens liste med tid, stasjon, operatør og pris) |
 
 I tillegg får du en **Saldo**-sensor per aktive avtale (negativ betyr at du skylder Flyt).
 
 Standard oppdateringsintervall er 30 minutter. Du kan endre det under integrasjonens *Konfigurer*.
 Merk at bompasseringer ofte dukker opp hos Flyt timer eller dager etter at de skjedde.
+
+## Liste over månedens passeringer på dashbordet
+
+Sensoren *Passeringer denne måneden* har alle passeringene for måneden i
+attributtet `passings`. Med et **Markdown-kort** kan du vise dem som en tabell.
+Gå til dashbordet, velg **Rediger → Legg til kort → Markdown → Vis koderedigering**
+og lim inn dette:
+
+```yaml
+type: markdown
+title: Bompasseringer denne måneden
+content: |
+  {%- set ns = namespace(rows=[]) %}
+  {%- for s in states.sensor | selectattr('attributes.passings', 'defined') %}
+  {%- for p in s.attributes.passings %}
+  {%- set ns.rows = ns.rows + [dict(p, car=s.attributes.registration_number)] %}
+  {%- endfor %}
+  {%- endfor %}
+  {%- set rows = ns.rows | sort(attribute='time', reverse=true) %}
+  | Tid | Bil | Stasjon | Pris |
+  |:--|:--|:--|--:|
+  {% for p in rows -%}
+  | {{ p.when }} | {{ p.car or '' }} | {{ p.station or '' }} | {{ '%.2f' | format(p.price) }} kr |
+  {% endfor %}
+  **Totalt {{ '%.2f' | format(rows | sum(attribute='price')) }} kr for {{ rows | count }} passeringer**
+```
+
+Kortet viser alle bilene samlet. Vil du bare vise én bil, bytter du ut
+`states.sensor | selectattr(...)` med for eksempel
+`[states.sensor.eb12345_passeringer_denne_maneden]`. Riktig entitets-ID finner du
+under **Innstillinger → Enheter og tjenester → Entiteter**.
+
+Listene lagres ikke i Home Assistant-databasen. De finnes bare i gjeldende
+tilstand og fyller derfor ikke opp historikken.
 
 ## Hendelse ved ny passering
 

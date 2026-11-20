@@ -53,6 +53,23 @@ def _last_attrs(obe: Obe) -> dict[str, Any]:
     return attrs
 
 
+def _month_attrs(obe: Obe) -> dict[str, Any]:
+    """This month's passings, newest first, for tables on the dashboard."""
+    return {
+        "passings": [
+            {
+                "time": p.time.isoformat(),
+                "when": p.time.strftime("%d.%m %H:%M"),
+                "station": p.station,
+                "operator": p.operator,
+                "price": p.price,
+                "invoiced": p.invoiced,
+            }
+            for p in obe.month_passings(_now())
+        ]
+    }
+
+
 OBE_SENSORS: tuple[ObeSensorDescription, ...] = (
     ObeSensorDescription(
         key="last_passing",
@@ -93,6 +110,7 @@ OBE_SENSORS: tuple[ObeSensorDescription, ...] = (
         state_class=SensorStateClass.TOTAL,
         native_unit_of_measurement="passeringer",
         value_fn=lambda o: len(o.month_passings(_now())),
+        attrs_fn=_month_attrs,
     ),
 )
 
@@ -118,6 +136,9 @@ class FlytObeSensor(CoordinatorEntity[FlytCoordinator], SensorEntity):
     """Sensor tied to one bombrikke."""
 
     _attr_has_entity_name = True
+    # The passing lists can be large and change on every poll: keep them out
+    # of the recorder database (they still show in the UI and templates).
+    _unrecorded_attributes = frozenset({"recent_passings", "passings"})
     entity_description: ObeSensorDescription
 
     def __init__(
