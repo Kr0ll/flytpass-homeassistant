@@ -100,6 +100,36 @@ class FlytConfigFlow(ConfigFlow, domain=DOMAIN):
             errors=errors,
         )
 
+    async def async_step_reconfigure(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Change e-mail and/or password (⋮ → Reconfigure)."""
+        errors: dict[str, str] = {}
+        entry = self._get_reconfigure_entry()
+        if user_input is not None:
+            email = user_input[CONF_EMAIL].strip().lower()
+            if email != entry.unique_id:
+                await self.async_set_unique_id(email)
+                self._abort_if_unique_id_configured()
+            errors = await self._validate(email, user_input[CONF_PASSWORD])
+            if not errors:
+                return self.async_update_reload_and_abort(
+                    entry,
+                    unique_id=email,
+                    title=email,
+                    data_updates={
+                        CONF_EMAIL: email,
+                        CONF_PASSWORD: user_input[CONF_PASSWORD],
+                    },
+                )
+        return self.async_show_form(
+            step_id="reconfigure",
+            data_schema=self.add_suggested_values_to_schema(
+                USER_SCHEMA, {CONF_EMAIL: entry.data[CONF_EMAIL]}
+            ),
+            errors=errors,
+        )
+
     @staticmethod
     @callback
     def async_get_options_flow(config_entry: ConfigEntry) -> OptionsFlow:

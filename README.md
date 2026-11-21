@@ -1,3 +1,5 @@
+<p align="center"><img src="custom_components/flyt/brand/icon@2x.png" alt="Flyt bombrikke" width="160"></p>
+
 # Flyt bombrikke for Home Assistant
 
 Uoffisiell integrasjon som henter passeringer for bombrikker hos
@@ -91,8 +93,28 @@ Assistant på nytt og legg til integrasjonen som over.
 
 I tillegg får du en **Saldo**-sensor per aktive avtale (negativ betyr at du skylder Flyt).
 
-Standard oppdateringsintervall er 30 minutter. Du kan endre det under integrasjonens *Konfigurer*.
-Merk at bompasseringer ofte dukker opp hos Flyt timer eller dager etter at de skjedde.
+## Innstillinger
+
+Gå til **Innstillinger → Enheter og tjenester → Flyt bombrikke**.
+
+### Oppdateringsintervall (⚙ Konfigurer)
+
+Her velger du hvor ofte integrasjonen henter nye data fra Flyt. Standard er
+**30 minutter**, og du kan velge fra 10 minutter til 1440 (ett døgn).
+Integrasjonen lastes inn på nytt når du lagrer.
+
+> ⚠️ **Ikke sett intervallet for kort.** Integrasjonen bruker et uoffisielt
+> API. Svært hyppige oppslag kan få Flyt til å reagere på trafikken, og i
+> verste fall kan kontoen bli strupet eller stengt ute. 30 minutter eller mer
+> anbefales. Du går heller ikke glipp av noe: bompasseringer dukker ofte opp
+> hos Flyt timer eller dager etter at de skjedde.
+
+### Endre e-post eller passord (⋮ → Rekonfigurer)
+
+Vil du bytte e-postbruker eller oppdatere passordet, velger du **⋮ → Rekonfigurer**
+på integrasjonen. Den nye innloggingen testes før den lagres. Du trenger ikke
+slette og legge til integrasjonen på nytt. Endrer du passordet på MinSide, ber
+Home Assistant deg selv om det nye passordet neste gang innloggingen feiler.
 
 ## Liste over månedens passeringer på dashbordet
 

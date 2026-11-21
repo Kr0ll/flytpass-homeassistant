@@ -15,6 +15,14 @@
         "data": {
           "password": "Password"
         }
+      },
+      "reconfigure": {
+        "title": "Change Flyt login",
+        "description": "Change the e-mail and/or password the integration uses to log in to Flyt MinSide. The login is tested before it is saved.",
+        "data": {
+          "email": "E-mail",
+          "password": "Password"
+        }
       }
     },
     "error": {
@@ -25,7 +33,8 @@
     },
     "abort": {
       "already_configured": "This user is already configured.",
-      "reauth_successful": "Login updated."
+      "reauth_successful": "Login updated.",
+      "reconfigure_successful": "Login updated."
     }
   },
   "options": {
@@ -34,7 +43,8 @@
         "title": "Flyt options",
         "data": {
           "scan_interval": "Polling interval (minutes)"
-        }
+        },
+        "description": "How often to fetch new passings from Flyt. 30 minutes or more is recommended: passings often reach Flyt hours or days late, and very frequent polling of an unofficial API may get the account throttled or blocked."
       }
     }
   },
