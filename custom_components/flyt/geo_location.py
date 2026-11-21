@@ -6,6 +6,7 @@ Use `geo_location_sources: [flyt]` in the map card. Covers the last ~45 days.
 
 from __future__ import annotations
 
+import hashlib
 from collections.abc import Callable
 from typing import Any
 
@@ -14,12 +15,19 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import UnitOfLength
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
+from homeassistant.util import slugify
 from homeassistant.util.location import distance
 
 from .const import CONF_SHOW_ALL_PASSINGS, GEO_SOURCE
 from .coordinator import FlytCoordinator, StationPoint
 
 HOVER_ITEMS = 5  # newest passings listed in the hover text
+
+
+def point_entity_id(sp: StationPoint) -> str:
+    """Stable entity ID from the station name; the hover name changes often."""
+    suffix = hashlib.sha1(sp.key.encode()).hexdigest()[:4]
+    return f"geo_location.flyt_{slugify(sp.name) or 'point'}_{suffix}"
 
 
 def _fmt_price(value: float, currency: str) -> str:
@@ -88,7 +96,10 @@ class FlytGeoPoint(GeolocationEvent):
         lon: float,
         dist_km: float | None,
         attrs: dict[str, Any],
+        entity_id: str | None = None,
     ) -> None:
+        if entity_id:
+            self.entity_id = entity_id
         self._source = source
         self._attr_name = name
         self._attr_icon = icon
@@ -168,7 +179,8 @@ class _GeoManager:
             dist = self._km(sp.latitude, sp.longitude)
             wanted[f"p|{key}"] = (
                 lambda n=name, i=icon, a=attrs, s=sp, d=dist: FlytGeoPoint(
-                    GEO_SOURCE, n, i, s.latitude, s.longitude, d, a
+                    GEO_SOURCE, n, i, s.latitude, s.longitude, d, a,
+                    point_entity_id(s),
                 ),
                 name,
                 attrs,
