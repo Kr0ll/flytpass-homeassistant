@@ -28,6 +28,9 @@ NVDB_HEADERS = {
 TYPE_TOLL_STATION = 45
 TYPE_FERRY_QUAY = 64
 
+# Bump when the index format changes, so cached copies are refetched
+INDEX_VERSION = 2
+
 KIND_TOLL = "toll"
 KIND_FERRY = "ferry"
 
@@ -65,7 +68,8 @@ async def _fetch_type(
     session: aiohttp.ClientSession, type_id: int
 ) -> list[dict[str, Any]]:
     url: str | None = (
-        f"{NVDB_URL}/{type_id}?inkluder=egenskaper,geometri&srid=4326&antall=1000"
+        f"{NVDB_URL}/{type_id}?inkluder=egenskaper,geometri,metadata"
+        "&srid=4326&antall=1000"
     )
     objects: list[dict[str, Any]] = []
     for _ in range(50):  # safety limit on paging
@@ -98,7 +102,7 @@ async def fetch_index(session: aiohttp.ClientSession) -> dict[str, Any]:
             continue
         key = f"{int(operator)}:{int(station)}"
         toll.setdefault(key, []).append(
-            [point[0], point[1], props.get("Navn bomstasjon") or ""]
+            [point[0], point[1], props.get("Navn bomstasjon") or "", _tariff_info(obj, props)]
         )
 
     quays: dict[str, list[Any]] = {}
@@ -113,7 +117,57 @@ async def fetch_index(session: aiohttp.ClientSession) -> dict[str, Any]:
     _LOGGER.debug(
         "NVDB index: %d toll stations, %d ferry quays", len(toll), len(quays)
     )
-    return {"toll": toll, "quays": quays}
+    return {"version": INDEX_VERSION, "toll": toll, "quays": quays}
+
+
+def _num(value: Any) -> float | None:
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return None
+
+
+def _span(start: Any, end: Any) -> str | None:
+    return f"{start}–{end}" if start and end else None
+
+
+def _tariff_info(obj: dict[str, Any], props: dict[str, Any]) -> dict[str, Any]:
+    """Tariff details of a toll station, as published in NVDB (full price)."""
+    return {
+        "price_small": _num(props.get("Takst liten bil")),
+        "price_large": _num(props.get("Takst stor bil")),
+        "rush_price_small": _num(props.get("Rushtidstakst liten bil")),
+        "rush_price_large": _num(props.get("Rushtidstakst stor bil")),
+        "rush_morning": _span(props.get("Rushtid morgen, fra"), props.get("Rushtid morgen, til")),
+        "rush_afternoon": _span(
+            props.get("Rushtid ettermiddag, fra"), props.get("Rushtid ettermiddag, til")
+        ),
+        "hour_rule": props.get("Timesregel"),
+        "hour_rule_minutes": props.get("Timesregel, varighet"),
+        "direction": props.get("Innkrevningsretning"),
+        "company": props.get("Navn bompengeanlegg"),
+        "link": props.get("Lenke til bomstasjon"),
+        "nvdb_updated": (obj.get("metadata") or {}).get("sist_modifisert", "")[:10] or None,
+    }
+
+
+def toll_stations(index: dict[str, Any] | None) -> list[list[Any]]:
+    """Every toll station in the index as [lat, lon, name, tariff_info]."""
+    if not index:
+        return []
+    return [c for cands in index.get("toll", {}).values() for c in cands if len(c) > 3]
+
+
+def estimate_price(
+    base: float | None, electric: bool, tag_discount_pct: float, ev_share_pct: float
+) -> float | None:
+    """Rough price after tag discount and EV rate. Not what Flyt bills."""
+    if base is None:
+        return None
+    price = base * (1 - tag_discount_pct / 100)
+    if electric:
+        price *= ev_share_pct / 100
+    return round(price, 2)
 
 
 def _code(value: Any) -> int | None:
@@ -159,7 +213,7 @@ def locate(
             wanted = _tokens(raw.get("exitTollStationName") or "")
             lat, lon, name = max(
                 candidates, key=lambda c: len(wanted & _tokens(c[2]))
-            )
+            )[:3]
             return KIND_TOLL, Location(lat, lon, name)
 
     if _looks_like_ferry(raw):

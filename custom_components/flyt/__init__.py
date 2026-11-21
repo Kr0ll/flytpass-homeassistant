@@ -13,7 +13,12 @@ from .api import FlytClient
 from .const import CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL_MIN
 from .coordinator import FlytCoordinator
 
-PLATFORMS = [Platform.SENSOR, Platform.DEVICE_TRACKER]
+PLATFORMS = [
+    Platform.SENSOR,
+    Platform.DEVICE_TRACKER,
+    Platform.SWITCH,
+    Platform.GEO_LOCATION,
+]
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:

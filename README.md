@@ -91,6 +91,7 @@ Assistant på nytt og legg til integrasjonen som over.
 | Bompenger denne måneden | Sum NOK, nullstilles den 1. (attributter `toll` og `ferry`: summen for bom og ferje hver for seg) |
 | Passeringer denne måneden | Antall (attributt `passings`: hele månedens liste med tid, stasjon, operatør, pris, type og posisjon) |
 | Siste posisjon | Kartentitet (`device_tracker`) som står på siste bomstasjon eller ferjekai brikka ble lest på |
+| Vis på kart | Bryter som viser eller skjuler bilen på kartet (se [Kart](#kart-over-bomstasjoner-og-ferjer)) |
 
 I tillegg får du en **Saldo**-sensor per aktive avtale (negativ betyr at du skylder Flyt).
 
@@ -98,10 +99,18 @@ I tillegg får du en **Saldo**-sensor per aktive avtale (negativ betyr at du sky
 
 Gå til **Innstillinger → Enheter og tjenester → Flyt bombrikke**.
 
-### Oppdateringsintervall (⚙ Konfigurer)
+### ⚙ Konfigurer
 
-Her velger du hvor ofte integrasjonen henter nye data fra Flyt. Standard er
-**30 minutter**, og du kan velge fra 10 minutter til 1440 (ett døgn).
+| Valg | Standard | Beskrivelse |
+|---|---|---|
+| Oppdateringsintervall | 30 min | Hvor ofte nye data hentes fra Flyt (10–1440 minutter) |
+| Vis alle passeringer på kartet | av | Kartpunkt per bil og stasjon den har passert (se [Kart](#kart-over-bomstasjoner-og-ferjer)) |
+| Vis alle bomstasjoner med takster | av | Alle bomstasjoner fra NVDB innenfor radiusen, med takster |
+| Radius for bomstasjoner | 50 km | Avstand fra hjemmeposisjonen din i Home Assistant |
+| Vis estimert pris med rabatter | av | Estimert pris per bil på hver bomstasjon |
+| Brikkerabatt | 20 % | Rabatten som brukes i estimatet |
+| Elbiltakst | 70 % | Andelen av fullpris elbiler betaler i estimatet |
+
 Integrasjonen lastes inn på nytt når du lagrer.
 
 > ⚠️ **Ikke sett intervallet for kort.** Integrasjonen bruker et uoffisielt
@@ -178,9 +187,15 @@ type: map
 title: Bompasseringer
 hours_to_show: 720   # siste 30 dager
 entities:
-  - device_tracker.ab12345_siste_posisjon   # bytt til dine entiteter
-  - device_tracker.cd67890_siste_posisjon
+  - entity: device_tracker.ab12345_siste_posisjon   # bytt til dine entiteter
+    label_mode: attribute
+    attribute: registration_number               # skiltnummer på markøren
+  - entity: device_tracker.cd67890_siste_posisjon
+    label_mode: icon                              # eller bil-ikon
 ```
+
+Uten `label_mode` viser kartet forbokstavene i entitetsnavnet, for eksempel
+«E(E». Du kan også sette `name: Audi` for egen tekst.
 
 Entitets-ID-ene finner du under **Innstillinger → Enheter og tjenester → Entiteter**
 ved å søke på «posisjon». Sporet bygges av posisjonene Home Assistant har sett
@@ -188,9 +203,61 @@ ved hver oppdatering. Kommer flere passeringer inn samtidig, er det bare den
 siste som blir et punkt i sporet. Den komplette listen med koordinater ligger i
 attributtet `passings`.
 
-> 🔒 **Personvern:** Sporet viser omtrent hvor og når bilene har kjørt. Tenk på
-> det før du deler dashbord eller skjermbilder. Vil du ikke ha kartet, kan du
-> deaktivere entiteten *Siste posisjon* per bil.
+### Velge hvilke biler som vises
+
+Kartkortet har ingen avkrysning per bil. Derfor har hver bil bryteren
+**Vis på kart**. Når den er av, forsvinner bilen og passeringspunktene dens fra
+kartet. Valget huskes over omstarter. Legg bryterne i et Entiteter-kort ved
+siden av kartet, så kan du slå biler av og på derfra.
+
+### Alle passeringene på kartet
+
+Slå på **Vis alle passeringer på kartet** under ⚙ Konfigurer. Da får hver bil
+ett punkt per bomstasjon eller ferjekai den har passert de siste 45 dagene, med
+antall passeringer, sum og siste tidspunkt. Det blir ikke ett punkt per passering,
+for da ville hundrevis av markører ligget oppå hverandre. Legg til kilden
+`flyt` i kartkortet:
+
+```yaml
+geo_location_sources:
+  - source: flyt
+    label_mode: attribute
+    attribute: count          # antall passeringer på markøren
+```
+
+### Alle bomstasjoner med takster
+
+Slå på **Vis alle bomstasjoner med takster** og velg en radius. Da vises
+bomstasjonene fra NVDB i nærheten. Detaljvisningen for hver stasjon har takst
+for liten og stor bil, rushtidstakst og rushtider, timesregel og bompengeselskap.
+Bruk kilden `flyt_stations`:
+
+```yaml
+geo_location_sources:
+  - source: flyt_stations
+    label_mode: attribute
+    attribute: price          # fullpris liten bil
+    unit: kr
+```
+
+Med **Vis estimert pris med rabatter** får hver stasjon også attributtet
+`estimates`, med estimert pris og rushpris for hver av bilene dine. Estimatet
+bruker brikkerabatten og elbiltaksten du har valgt. Elbiler gjenkjennes fra
+kjøretøyregisteret (drivstoffkode 5), og kjøretøy over 3,5 tonn får stor bil-takst.
+
+> ⚠️ **Forbehold om takster og priser**
+> - Takstene kommer fra NVDB (Statens vegvesen). De er **fullpris før rabatter**
+>   og kan ligge etter når bompengeselskapene endrer priser.
+> - Estimert pris er bare et **anslag**. Flyt og bompengeselskapene gir ikke
+>   nødvendigvis brikkerabatt eller elbilrabatt på alle stasjoner, og satsene
+>   varierer mellom bompengeprosjekter.
+> - Timesregel, rushtid og passeringstak påvirker hva du faktisk betaler.
+> - **Fasiten er alltid det Flyt fakturerer**, som du ser i sensorene og i
+>   listen over passeringer.
+
+> 🔒 **Personvern:** Sporet og passeringspunktene viser omtrent hvor og når
+> bilene har kjørt. Tenk på det før du deler dashbord eller skjermbilder. Vil du
+> ikke ha en bil på kartet, slår du av *Vis på kart* for den.
 
 ## Hendelse ved ny passering
 
@@ -237,10 +304,6 @@ inn selv der det trengtes, og testet resultatet. Omtrent slik gikk det:
    måte som nettsidens skjulte e-post/passord-skjema.
 4. **Koding.** Claude skrev integrasjonen: API-klient, config flow,
    koordinator, sensorer, oversettelser og et frittstående testskript.
-5. **Feilsøking sammen.** Første test feilet med «Bad Request». Claude
-   reproduserte feilen og fant årsaken: `aiohttp` satte anførselstegn rundt
-   B2C-cookiene, som har `|` og `:` i navnene. Etter rettingen fungerte
-   innloggingen mot en ekte konto.
 
 Passord, BankID og kontoopprettelse ble alltid gjort av eieren selv, ikke av
 Claude.

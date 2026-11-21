@@ -42,9 +42,23 @@
       "init": {
         "title": "Flyt options",
         "data": {
-          "scan_interval": "Polling interval (minutes)"
+          "scan_interval": "Polling interval (minutes)",
+          "show_all_passings": "Show all passings on the map",
+          "show_stations": "Show all toll stations with tariffs",
+          "station_radius_km": "Radius for toll stations (km from home)",
+          "show_estimates": "Show estimated price with discounts",
+          "tag_discount_pct": "Tag discount (%)",
+          "ev_share_pct": "EV rate (% of full price)"
         },
-        "description": "How often to fetch new passings from Flyt. 30 minutes or more is recommended: passings often reach Flyt hours or days late, and very frequent polling of an unofficial API may get the account throttled or blocked."
+        "description": "How often to fetch new passings, and what to show on maps. 30 minutes or more is recommended: passings often reach Flyt hours or days late, and very frequent polling of an unofficial API may get the account throttled or blocked.",
+        "data_description": {
+          "show_all_passings": "One map point per vehicle and station/quay it passed, with count and total. Use geo_location_sources: flyt in the map card.",
+          "show_stations": "Toll stations from NVDB with full-price tariffs. Use geo_location_sources: flyt_stations. Tariffs may lag behind price changes; the invoice is what counts.",
+          "station_radius_km": "Only stations within this distance from your home location.",
+          "show_estimates": "Estimated price per vehicle from the NVDB tariff and the rates below. Flyt and the toll companies do not necessarily give discounts at every station, and hour rules and rush hours affect what you pay.",
+          "tag_discount_pct": "Usually 20 % with a valid tag agreement, but not at all stations.",
+          "ev_share_pct": "Share of full price that electric vehicles pay. Set per toll project, at most 70 % by law. Electric vehicles are detected from the vehicle register."
+        }
       }
     }
   },
@@ -72,6 +86,11 @@
     "device_tracker": {
       "last_position": {
         "name": "Last position"
+      }
+    },
+    "switch": {
+      "show_on_map": {
+        "name": "Show on map"
       }
     }
   }

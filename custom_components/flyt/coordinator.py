@@ -17,7 +17,7 @@ from homeassistant.util import dt as dt_util
 
 from .api import FlytAuthError, FlytClient, FlytError
 from .const import DOMAIN, EVENT_NEW_PASSING, LOOKBACK_DAYS, TIMEZONE
-from .locations import KIND_TOLL, fetch_index, locate
+from .locations import INDEX_VERSION, KIND_TOLL, fetch_index, locate
 
 LOCATIONS_STORE_KEY = f"{DOMAIN}_locations"
 LOCATIONS_STORE_VERSION = 1
@@ -75,6 +75,8 @@ class Obe:
     customer_name: str
     customer_number: str
     agreement_number: str | None
+    electric: bool = False
+    large: bool = False  # "stor bil" tariff (over 3.5 t)
     passings: list[Passing] = field(default_factory=list)  # newest first
 
     @property
@@ -110,6 +112,25 @@ class Agreement:
 class FlytData:
     obes: dict[str, Obe]
     agreements: dict[str, Agreement]
+
+
+@dataclass
+class StationPoint:
+    """All passings of one vehicle at one toll station or ferry quay."""
+
+    key: str
+    obe_number: str
+    registration_number: str | None
+    vehicle_name: str | None
+    name: str  # NVDB name of the station/quay
+    station: str | None  # Flyt's name
+    kind: str
+    latitude: float
+    longitude: float
+    count: int
+    total: float
+    currency: str
+    last_time: datetime
 
 
 def _parse_passing(
@@ -173,13 +194,60 @@ class FlytCoordinator(DataUpdateCoordinator[FlytData]):
         self._index: dict[str, Any] | None = None
         self._index_fetched: datetime | None = None
         self._index_attempt: datetime | None = None
+        # obe_number -> shown on the map; set by the "Show on map" switches
+        self.map_visible: dict[str, bool] = {}
+
+    def is_on_map(self, obe_number: str) -> bool:
+        return self.map_visible.get(obe_number, True)
+
+    def set_on_map(self, obe_number: str, visible: bool) -> None:
+        self.map_visible[obe_number] = visible
+        self.async_update_listeners()
+
+    def station_points(self) -> dict[str, StationPoint]:
+        """Located passings grouped per vehicle and station, visible cars only."""
+        points: dict[str, StationPoint] = {}
+        if not self.data:
+            return points
+        for obe in self.data.obes.values():
+            if obe.status != "Active" or not self.is_on_map(obe.obe_number):
+                continue
+            for p in obe.passings:  # newest first
+                if p.latitude is None or p.longitude is None:
+                    continue
+                key = f"{obe.obe_number}|{p.latitude:.5f},{p.longitude:.5f}"
+                point = points.get(key)
+                if point is None:
+                    points[key] = StationPoint(
+                        key=key,
+                        obe_number=obe.obe_number,
+                        registration_number=obe.registration_number,
+                        vehicle_name=obe.vehicle_name,
+                        name=p.location_name or p.station or "",
+                        station=p.station,
+                        kind=p.kind,
+                        latitude=p.latitude,
+                        longitude=p.longitude,
+                        count=1,
+                        total=p.price,
+                        currency=p.currency,
+                        last_time=p.time,
+                    )
+                else:
+                    point.count += 1
+                    point.total = round(point.total + p.price, 2)
+        return points
 
     async def _ensure_locations(self) -> None:
         """Load the NVDB index from disk, refresh it weekly. Never fatal."""
         now = dt_util.utcnow()
         if self._index is None and self._index_attempt is None:
             stored = await self._store.async_load()
-            if stored and stored.get("index"):
+            if (
+                stored
+                and stored.get("index")
+                and stored["index"].get("version") == INDEX_VERSION
+            ):
                 self._index = stored["index"]
                 self._index_fetched = dt_util.parse_datetime(stored.get("fetched", ""))
         fresh = self._index_fetched and now - self._index_fetched < LOCATIONS_MAX_AGE
@@ -194,6 +262,10 @@ class FlytCoordinator(DataUpdateCoordinator[FlytData]):
             return
         self._index, self._index_fetched = index, now
         await self._store.async_save({"fetched": now.isoformat(), "index": index})
+
+    @property
+    def locations_index(self) -> dict[str, Any] | None:
+        return self._index
 
     async def _async_update_data(self) -> FlytData:
         try:
@@ -236,6 +308,10 @@ class FlytCoordinator(DataUpdateCoordinator[FlytData]):
                         customer_name=cname,
                         customer_number=cnum,
                         agreement_number=str(agr.get("agreementNumber")),
+                        # Vehicle register fuel code 5 = electricity
+                        electric=str(vehicle.get("fuelType") or "") == "5",
+                        large=(vehicle.get("size") or "Regular") != "Regular"
+                        or (vehicle.get("class") or "") in ("M2", "M3", "N2", "N3"),
                     )
 
         await self._ensure_locations()

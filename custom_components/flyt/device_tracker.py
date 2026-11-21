@@ -31,7 +31,7 @@ class FlytPositionTracker(CoordinatorEntity[FlytCoordinator], TrackerEntity):
 
     _attr_has_entity_name = True
     _attr_translation_key = "last_position"
-    _attr_icon = "mdi:map-marker-path"
+    _attr_icon = "mdi:car"
 
     def __init__(self, coordinator: FlytCoordinator, obe_number: str) -> None:
         super().__init__(coordinator)
@@ -41,9 +41,18 @@ class FlytPositionTracker(CoordinatorEntity[FlytCoordinator], TrackerEntity):
         self._attr_device_info = DeviceInfo(identifiers={(DOMAIN, obe_number)})
 
     @property
+    def _obe(self) -> Obe | None:
+        return self.coordinator.data.obes.get(self._obe_number)
+
+    @property
     def _passing(self) -> Passing | None:
-        obe: Obe | None = self.coordinator.data.obes.get(self._obe_number)
+        obe = self._obe
         return obe.last_located_passing if obe else None
+
+    @property
+    def available(self) -> bool:
+        # Hidden from the map when the vehicle's "Show on map" switch is off
+        return super().available and self.coordinator.is_on_map(self._obe_number)
 
     @property
     def source_type(self) -> SourceType:
@@ -65,10 +74,15 @@ class FlytPositionTracker(CoordinatorEntity[FlytCoordinator], TrackerEntity):
 
     @property
     def extra_state_attributes(self) -> dict[str, Any] | None:
-        p = self._passing
+        obe, p = self._obe, self._passing
+        attrs: dict[str, Any] = {
+            "registration_number": obe.registration_number if obe else None,
+            "vehicle": obe.vehicle_name if obe else None,
+        }
         if p is None:
-            return None
+            return attrs
         return {
+            **attrs,
             "station": p.station,
             "nvdb_name": p.location_name,
             "kind": p.kind,
