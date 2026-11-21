@@ -84,8 +84,9 @@ Assistant på nytt og legg til integrasjonen som over.
 
 Én enhet per aktive brikke (navngitt etter registreringsnummer og bil), med:
 
-> 🌐 Navnene i Home Assistant følger språket du har valgt der. Denne
-> veiledningen bruker norske navn med de engelske i parentes eller i en egen kolonne.
+> 🌐 Navnene i Home Assistant følger språket der. Denne veiledningen bruker
+> norske navn med de engelske i parentes eller i en egen kolonne. Se
+> [Norsk eller engelsk Home Assistant](#norsk-eller-engelsk-home-assistant).
 
 | Norsk | English | Beskrivelse |
 |---|---|---|
@@ -98,6 +99,33 @@ Assistant på nytt og legg til integrasjonen som over.
 | Vis på kart | Show on map | Bryter som viser eller skjuler bilen på kartet (se [Kart](#kart-over-passeringene)) |
 
 I tillegg får du en **Saldo** (*Account balance*)-sensor per aktive avtale (negativ betyr at du skylder Flyt).
+
+### Norsk eller engelsk Home Assistant
+
+Integrasjonen er oversatt til norsk og engelsk. Hva du ser, avhenger av to
+språkinnstillinger i Home Assistant:
+
+| Hva | Følger | Norsk | Engelsk |
+|---|---|---|---|
+| Navn på sensorer og brytere | **Systemspråket** (*Settings → System → General → Language*) | Siste posisjon, Vis på kart | Last position, Show on map |
+| Entitets-ID-er | Systemspråket **da integrasjonen ble lagt til** | `…_siste_posisjon`, `…_vis_pa_kart` | `…_last_position`, `…_show_on_map` |
+| Menyer, innloggingsskjema og ⚙ Konfigurer | **Ditt brukerspråk** (*Profile → Language*) | Innstillinger, Konfigurer | Settings, Configure |
+| Attributter, hendelsen `flyt_new_passing`, `kind` (`toll`/`ferry`) | Alltid likt | `passings`, `count`, `registration_number` | samme |
+| Stasjonsnavn, ferjekaier, operatører | Alltid likt | Slik Flyt og NVDB skriver dem | samme |
+
+Dette er verdt å vite:
+
+- **Entitets-ID-ene endres ikke** hvis du bytter språk senere. Bare de viste
+  navnene endres. Har du lagt til integrasjonen på engelsk, heter bryterne
+  `switch.…_show_on_map` også etter at du har byttet til norsk.
+- **Systemspråk og brukerspråk kan være forskjellige.** Med norsk systemspråk og
+  engelsk profil får du norske entitetsnavn i engelske menyer.
+- **Eksemplene i denne veiledningen** bruker norske ID-er. Bruker du engelsk,
+  bytter du endelsene som i tabellen over, eller velger entitetene i den
+  grafiske editoren (se [Sett opp kartet](#sett-opp-kartet)).
+- **Maler og automasjoner** som bruker attributter (`passings`, `count`,
+  `registration_number`) eller hendelsen `flyt_new_passing`, virker likt på
+  begge språk. Det er bare entitets-ID-ene som må tilpasses.
 
 ## Innstillinger
 
