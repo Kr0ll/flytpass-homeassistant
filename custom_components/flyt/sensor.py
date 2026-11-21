@@ -64,9 +64,20 @@ def _month_attrs(obe: Obe) -> dict[str, Any]:
                 "operator": p.operator,
                 "price": p.price,
                 "invoiced": p.invoiced,
+                "kind": p.kind,
+                "latitude": p.latitude,
+                "longitude": p.longitude,
             }
             for p in obe.month_passings(_now())
         ]
+    }
+
+
+def _month_cost_attrs(obe: Obe) -> dict[str, Any]:
+    month = obe.month_passings(_now())
+    return {
+        "toll": round(sum(p.price for p in month if p.kind == "toll"), 2),
+        "ferry": round(sum(p.price for p in month if p.kind == "ferry"), 2),
     }
 
 
@@ -101,6 +112,7 @@ OBE_SENSORS: tuple[ObeSensorDescription, ...] = (
         native_unit_of_measurement="NOK",
         suggested_display_precision=2,
         value_fn=lambda o: round(sum(p.price for p in o.month_passings(_now())), 2),
+        attrs_fn=_month_cost_attrs,
     ),
     ObeSensorDescription(
         key="month_count",

@@ -68,6 +68,11 @@
       "balance": {
         "name": "Account balance"
       }
+    },
+    "device_tracker": {
+      "last_position": {
+        "name": "Last position"
+      }
     }
   }
 }

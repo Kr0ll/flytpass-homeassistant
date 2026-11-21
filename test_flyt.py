@@ -21,6 +21,7 @@ sys.modules["flyt"] = _pkg
 import aiohttp  # noqa: E402
 
 from flyt.api import FlytClient  # noqa: E402
+from flyt.locations import fetch_index, locate  # noqa: E402
 
 
 async def main() -> None:
@@ -44,10 +45,14 @@ async def main() -> None:
                     obes.append(obe["obeNumber"])
         since = datetime.now(timezone.utc) - timedelta(days=30)
         passings = await client.get_passings(obes, date_from=since)
-        print(f"\n{len(passings)} passeringer siste 30 dager. Siste 10:")
-        for p in passings[:10]:
+        index = await fetch_index(session)
+        print(f"\n{len(passings)} passeringer siste 30 dager. Siste 15:")
+        for p in passings[:15]:
+            kind, loc = locate(index, p)
+            pos = f"{loc.latitude:.4f},{loc.longitude:.4f}" if loc else "ingen posisjon"
             print(f"  {p.get('transactedOn')}  {p.get('licensePlateDetected') or '':8} "
-                  f"{p.get('totalPrice'):>7} {p.get('currency')}  {p.get('exitTollStationName')}")
+                  f"{p.get('totalPrice'):>7} {p.get('currency')}  {kind:5}  "
+                  f"{p.get('exitTollStationName')}  [{pos}]")
 
 
 asyncio.run(main())

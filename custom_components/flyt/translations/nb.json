@@ -68,6 +68,11 @@
       "balance": {
         "name": "Saldo"
       }
+    },
+    "device_tracker": {
+      "last_position": {
+        "name": "Siste posisjon"
+      }
     }
   }
 }

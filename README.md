@@ -88,8 +88,9 @@ Assistant på nytt og legg til integrasjonen som over.
 | Siste passering | Tidspunkt (attributter: stasjon, operatør, pris, skiltnummer, de 10 siste passeringene) |
 | Siste bomstasjon | Navn på stasjonen |
 | Pris siste passering | NOK |
-| Bompenger denne måneden | Sum NOK, nullstilles den 1. |
-| Passeringer denne måneden | Antall (attributt `passings`: hele månedens liste med tid, stasjon, operatør og pris) |
+| Bompenger denne måneden | Sum NOK, nullstilles den 1. (attributter `toll` og `ferry`: summen for bom og ferje hver for seg) |
+| Passeringer denne måneden | Antall (attributt `passings`: hele månedens liste med tid, stasjon, operatør, pris, type og posisjon) |
+| Siste posisjon | Kartentitet (`device_tracker`) som står på siste bomstasjon eller ferjekai brikka ble lest på |
 
 I tillegg får du en **Saldo**-sensor per aktive avtale (negativ betyr at du skylder Flyt).
 
@@ -150,9 +151,50 @@ under **Innstillinger → Enheter og tjenester → Entiteter**.
 Listene lagres ikke i Home Assistant-databasen. De finnes bare i gjeldende
 tilstand og fyller derfor ikke opp historikken.
 
+## Kart over bomstasjoner og ferjer
+
+Hver passering kobles til en GPS-posisjon fra
+[NVDB](https://nvdbapiles.atlas.vegvesen.no), Statens vegvesens åpne vegdatabase:
+
+- **Bomstasjoner** kobles på operatør-ID og stasjons-ID, som er de samme hos Flyt
+  og i NVDB. Det gir nøyaktig posisjon.
+- **Ferjer** kommer som vanlige passeringer, ofte to linjer per tur (billett og
+  et tillegg). De kobles på navnet til avreisekaien, for eksempel «Valset ferjekai».
+  Dette fungerer for de fleste samband, men kan bomme der Flyt og NVDB skriver
+  kainavnet ulikt.
+- Passeringer som ikke kan kobles, som utenlandske bommer, kommer fortsatt med
+  i lister og summer, bare uten posisjon.
+
+Integrasjonen henter listen over bomstasjoner og ferjekaier fra NVDB omtrent én
+gang i uka og lagrer den lokalt i Home Assistant. Det blir ingen ekstra trafikk
+mot Flyt.
+
+Hver bil får entiteten **Siste posisjon** (`device_tracker`), som står der brikka
+sist ble lest. Med et **kartkort** og `hours_to_show` tegnes også et spor bakover
+i tid:
+
+```yaml
+type: map
+title: Bompasseringer
+hours_to_show: 720   # siste 30 dager
+entities:
+  - device_tracker.ab12345_siste_posisjon   # bytt til dine entiteter
+  - device_tracker.cd67890_siste_posisjon
+```
+
+Entitets-ID-ene finner du under **Innstillinger → Enheter og tjenester → Entiteter**
+ved å søke på «posisjon». Sporet bygges av posisjonene Home Assistant har sett
+ved hver oppdatering. Kommer flere passeringer inn samtidig, er det bare den
+siste som blir et punkt i sporet. Den komplette listen med koordinater ligger i
+attributtet `passings`.
+
+> 🔒 **Personvern:** Sporet viser omtrent hvor og når bilene har kjørt. Tenk på
+> det før du deler dashbord eller skjermbilder. Vil du ikke ha kartet, kan du
+> deaktivere entiteten *Siste posisjon* per bil.
+
 ## Hendelse ved ny passering
 
-For hver ny passering sendes hendelsen `flyt_new_passing` med feltene `time`, `station`,
+For hver ny passering sendes hendelsen `flyt_new_passing` med feltene `time`, `station`, `kind` (`toll` eller `ferry`), `latitude`, `longitude`,
 `operator`, `price`, `currency`, `license_plate`, `registration_number`, `vehicle`, `obe_number` og `id`.
 
 ```yaml
@@ -207,6 +249,7 @@ Claude.
 
 - Passeringer dukker ofte opp hos Flyt timer eller dager etter at de skjedde.
 - Nye brikker eller biler kommer først med når integrasjonen lastes inn på nytt.
+- Posisjonene kommer fra NVDB. Ferjekaier kobles på navn og kan i sjeldne tilfeller mangle eller bli feil.
 - Passordet lagres i Home Assistant-konfigurasjonen, slik det gjøres for
   andre integrasjoner med brukernavn og passord. Bruk et eget passord for
   e-postbrukeren.

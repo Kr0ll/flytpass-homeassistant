@@ -10,11 +10,19 @@ from typing import Any
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ConfigEntryAuthFailed
+from homeassistant.helpers.aiohttp_client import async_get_clientsession
+from homeassistant.helpers.storage import Store
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 from homeassistant.util import dt as dt_util
 
 from .api import FlytAuthError, FlytClient, FlytError
 from .const import DOMAIN, EVENT_NEW_PASSING, LOOKBACK_DAYS, TIMEZONE
+from .locations import KIND_TOLL, fetch_index, locate
+
+LOCATIONS_STORE_KEY = f"{DOMAIN}_locations"
+LOCATIONS_STORE_VERSION = 1
+LOCATIONS_MAX_AGE = timedelta(days=7)
+LOCATIONS_RETRY = timedelta(hours=6)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -33,6 +41,10 @@ class Passing:
     license_plate: str | None
     invoiced: bool
     description: str | None
+    kind: str = KIND_TOLL  # "toll" or "ferry"
+    latitude: float | None = None
+    longitude: float | None = None
+    location_name: str | None = None  # station/quay name in NVDB
 
     def as_dict(self) -> dict[str, Any]:
         return {
@@ -45,6 +57,9 @@ class Passing:
             "currency": self.currency,
             "license_plate": self.license_plate,
             "invoiced": self.invoiced,
+            "kind": self.kind,
+            "latitude": self.latitude,
+            "longitude": self.longitude,
         }
 
 
@@ -65,6 +80,10 @@ class Obe:
     @property
     def last_passing(self) -> Passing | None:
         return self.passings[0] if self.passings else None
+
+    @property
+    def last_located_passing(self) -> Passing | None:
+        return next((p for p in self.passings if p.latitude is not None), None)
 
     def month_passings(self, now: datetime) -> list[Passing]:
         return [
@@ -93,7 +112,9 @@ class FlytData:
     agreements: dict[str, Agreement]
 
 
-def _parse_passing(raw: dict[str, Any]) -> Passing | None:
+def _parse_passing(
+    raw: dict[str, Any], index: dict[str, Any] | None
+) -> Passing | None:
     ts = raw.get("transactedOn") or raw.get("exitTollStationTransittedOn")
     if not ts:
         return None
@@ -103,6 +124,7 @@ def _parse_passing(raw: dict[str, Any]) -> Passing | None:
     if parsed.tzinfo is None:
         # The API returns Norwegian local time without an offset
         parsed = parsed.replace(tzinfo=dt_util.get_time_zone(TIMEZONE))
+    kind, loc = locate(index, raw)
     price = float(raw.get("totalPrice") or 0)
     if raw.get("operationType") == "Debit":
         price = -price
@@ -117,6 +139,10 @@ def _parse_passing(raw: dict[str, Any]) -> Passing | None:
         license_plate=raw.get("licensePlateDetected"),
         invoiced=bool(raw.get("invoiced")),
         description=raw.get("description"),
+        kind=kind,
+        latitude=loc.latitude if loc else None,
+        longitude=loc.longitude if loc else None,
+        location_name=loc.name if loc else None,
     )
 
 
@@ -141,6 +167,33 @@ class FlytCoordinator(DataUpdateCoordinator[FlytData]):
         )
         self.client = client
         self._seen_ids: set[str] | None = None
+        self._store: Store[dict[str, Any]] = Store(
+            hass, LOCATIONS_STORE_VERSION, LOCATIONS_STORE_KEY
+        )
+        self._index: dict[str, Any] | None = None
+        self._index_fetched: datetime | None = None
+        self._index_attempt: datetime | None = None
+
+    async def _ensure_locations(self) -> None:
+        """Load the NVDB index from disk, refresh it weekly. Never fatal."""
+        now = dt_util.utcnow()
+        if self._index is None and self._index_attempt is None:
+            stored = await self._store.async_load()
+            if stored and stored.get("index"):
+                self._index = stored["index"]
+                self._index_fetched = dt_util.parse_datetime(stored.get("fetched", ""))
+        fresh = self._index_fetched and now - self._index_fetched < LOCATIONS_MAX_AGE
+        retry_wait = self._index_attempt and now - self._index_attempt < LOCATIONS_RETRY
+        if fresh or retry_wait:
+            return
+        self._index_attempt = now
+        try:
+            index = await fetch_index(async_get_clientsession(self.hass))
+        except Exception as err:  # noqa: BLE001 - positions are optional
+            _LOGGER.warning("Could not fetch toll station positions from NVDB: %s", err)
+            return
+        self._index, self._index_fetched = index, now
+        await self._store.async_save({"fetched": now.isoformat(), "index": index})
 
     async def _async_update_data(self) -> FlytData:
         try:
@@ -185,6 +238,7 @@ class FlytCoordinator(DataUpdateCoordinator[FlytData]):
                         agreement_number=str(agr.get("agreementNumber")),
                     )
 
+        await self._ensure_locations()
         now = dt_util.now(dt_util.get_time_zone(TIMEZONE))
         since = min(
             now - timedelta(days=LOOKBACK_DAYS),
@@ -193,7 +247,12 @@ class FlytCoordinator(DataUpdateCoordinator[FlytData]):
         raw_passings = await self.client.get_passings(
             list(obes), date_from=dt_util.as_utc(since)
         )
-        passings = [p for p in map(_parse_passing, raw_passings) if p]
+        passings = [
+            p for p in (_parse_passing(r, self._index) for r in raw_passings) if p
+        ]
+        unlocated = {p.station for p in passings if p.latitude is None}
+        if unlocated:
+            _LOGGER.debug("No position found for: %s", ", ".join(sorted(map(str, unlocated))))
         passings.sort(key=lambda p: p.time, reverse=True)
         for p in passings:
             if p.obe_number in obes:
