@@ -91,7 +91,7 @@ Assistant på nytt og legg til integrasjonen som over.
 | Bompenger denne måneden | Sum NOK, nullstilles den 1. (attributter `toll` og `ferry`: summen for bom og ferje hver for seg) |
 | Passeringer denne måneden | Antall (attributt `passings`: hele månedens liste med tid, stasjon, operatør, pris, type og posisjon) |
 | Siste posisjon | Kartentitet (`device_tracker`) som står på siste bomstasjon eller ferjekai brikka ble lest på |
-| Vis på kart | Bryter som viser eller skjuler bilen på kartet (se [Kart](#kart-over-bomstasjoner-og-ferjer)) |
+| Vis på kart | Bryter som viser eller skjuler bilen på kartet (se [Kart](#kart-over-passeringene)) |
 
 I tillegg får du en **Saldo**-sensor per aktive avtale (negativ betyr at du skylder Flyt).
 
@@ -104,7 +104,7 @@ Gå til **Innstillinger → Enheter og tjenester → Flyt bombrikke**.
 | Valg | Standard | Beskrivelse |
 |---|---|---|
 | Oppdateringsintervall | 30 min | Hvor ofte nye data hentes fra Flyt (10–1440 minutter) |
-| Vis alle passeringer på kartet | av | Kartpunkt per bil og stasjon den har passert (se [Kart](#kart-over-bomstasjoner-og-ferjer)) |
+| Vis alle passeringer på kartet | av | Kartpunkt per bil og stasjon den har passert (se [Kart](#kart-over-passeringene)) |
 
 Integrasjonen lastes inn på nytt når du lagrer.
 
@@ -155,7 +155,91 @@ under **Innstillinger → Enheter og tjenester → Entiteter**.
 Listene lagres ikke i Home Assistant-databasen. De finnes bare i gjeldende
 tilstand og fyller derfor ikke opp historikken.
 
-## Kart over bomstasjoner og ferjer
+## Kart over passeringene
+
+Hver bil kan vises på et kart der brikka sist ble lest, og alle bomstasjoner og
+ferjekaier den har passert kan vises som punkter. Posisjonene kommer fra
+Statens vegvesens åpne vegdatabase (se [Hvor posisjonene kommer fra](#hvor-posisjonene-kommer-fra)).
+
+### Sett opp kartet
+
+**1. Slå på alle passeringer**
+
+Gå til **Innstillinger → Enheter og tjenester → Flyt bombrikke → ⚙ Konfigurer**,
+huk av for **Vis alle passeringer på kartet** og lagre. Punktene dukker opp når
+integrasjonen har lastet inn på nytt, som skjer med en gang du lagrer.
+
+**2. Finn entitets-ID-ene**
+
+Gå til **Innstillinger → Enheter og tjenester → Entiteter** og søk etter:
+
+- **«posisjon»**, som gir én *Siste posisjon* per bil, for eksempel
+  `device_tracker.ab12345_bilnavn_siste_posisjon`
+- **«kart»**, som gir én *Vis på kart*-bryter per bil, for eksempel
+  `switch.ab12345_bilnavn_vis_pa_kart`
+
+ID-ene er laget av skiltnummer og bilmodell. Noter dem til neste trinn.
+
+**3. Lag kortet på et dashbord**
+
+Kortet må lages på et **dashbord**, ikke på *Kart*-siden i menyen (se
+[Hva du ser](#hva-du-ser)). Åpne dashbordet, trykk **✏️ Rediger → + Legg til kort**,
+bla ned til **Manuelt** (eller velg et hvilket som helst kort og trykk
+**Vis koderedigering**), og lim inn dette. Bytt ut ID-ene med dine egne fra trinn 2:
+
+```yaml
+type: vertical-stack
+cards:
+  - type: map
+    title: Bompasseringer
+    hours_to_show: 720          # spor for de siste 30 dagene (0 = uten spor)
+    entities:
+      - entity: device_tracker.ab12345_bilnavn_siste_posisjon
+        label_mode: attribute
+        attribute: registration_number    # skiltnummer på markøren
+      - entity: device_tracker.cd67890_bilnavn_siste_posisjon
+        label_mode: attribute
+        attribute: registration_number
+    geo_location_sources:
+      - source: flyt                       # alle passeringene (trinn 1)
+        label_mode: attribute
+        attribute: count                   # antall passeringer på markøren
+  - type: entities
+    title: Vis på kart
+    entities:
+      - switch.ab12345_bilnavn_vis_pa_kart
+      - switch.cd67890_bilnavn_vis_pa_kart
+```
+
+Trykk **Lagre**. Har du flere biler, legger du til én linje per bil i begge listene.
+
+**4. Velg hvilke biler som vises**
+
+Kartkortet har ingen avkrysning per bil. Bruk bryterne under kartet i stedet. Når
+**Vis på kart** er av for en bil, forsvinner både bilen og passeringspunktene dens
+fra kartet. Valget huskes over omstarter.
+
+### Hva du ser
+
+- **Markør med skiltnummer:** hvor bilen sist passerte en bom eller ferjekai.
+- **Markør med et tall:** en bomstasjon eller ferjekai bilen har passert de
+  siste 45 dagene. Tallet er antall passeringer der. Én bil som har kjørt samme
+  bom ti ganger, gir ett punkt med «10», ikke ti punkter.
+- **Strek bak bilen:** sporet fra `hours_to_show`. Det bygges av posisjonene Home
+  Assistant har sett ved hver oppdatering. Kommer flere passeringer inn samtidig,
+  blir bare den siste et punkt i sporet.
+- **Trykk på en markør** for detaljer: stasjon, bil, type (bom eller ferje),
+  antall, sum og tidspunkt for siste passering.
+
+> **Kart-siden i menyen** viser automatisk alle entiteter med posisjon, også
+> passeringspunktene. Der kan du ikke velge hva markørene viser, så de får
+> forbokstavene i navnet (for eksempel «K-R» for «Klett - Rv.707»). Bruk
+> dashbordkortet over for skiltnummer og antall.
+
+Uten `label_mode` viser også dashbordkortet forbokstaver. Andre valg er
+`label_mode: icon` (bil-ikon) eller `name: Audi` (egen tekst).
+
+### Hvor posisjonene kommer fra
 
 Hver passering kobles til en GPS-posisjon fra
 [NVDB](https://nvdbapiles.atlas.vegvesen.no), Statens vegvesens åpne vegdatabase:
@@ -167,58 +251,12 @@ Hver passering kobles til en GPS-posisjon fra
   Dette fungerer for de fleste samband, men kan bomme der Flyt og NVDB skriver
   kainavnet ulikt.
 - Passeringer som ikke kan kobles, som utenlandske bommer, kommer fortsatt med
-  i lister og summer, bare uten posisjon.
+  i lister og summer, bare uten posisjon. Den komplette listen med koordinater
+  ligger i attributtet `passings` på sensoren *Passeringer denne måneden*.
 
 Integrasjonen henter listen over bomstasjoner og ferjekaier fra NVDB omtrent én
 gang i uka og lagrer den lokalt i Home Assistant. Det blir ingen ekstra trafikk
 mot Flyt.
-
-Hver bil får entiteten **Siste posisjon** (`device_tracker`), som står der brikka
-sist ble lest. Med et **kartkort** og `hours_to_show` tegnes også et spor bakover
-i tid:
-
-```yaml
-type: map
-title: Bompasseringer
-hours_to_show: 720   # siste 30 dager
-entities:
-  - entity: device_tracker.ab12345_siste_posisjon   # bytt til dine entiteter
-    label_mode: attribute
-    attribute: registration_number               # skiltnummer på markøren
-  - entity: device_tracker.cd67890_siste_posisjon
-    label_mode: icon                              # eller bil-ikon
-```
-
-Uten `label_mode` viser kartet forbokstavene i entitetsnavnet, for eksempel
-«E(E». Du kan også sette `name: Audi` for egen tekst.
-
-Entitets-ID-ene finner du under **Innstillinger → Enheter og tjenester → Entiteter**
-ved å søke på «posisjon». Sporet bygges av posisjonene Home Assistant har sett
-ved hver oppdatering. Kommer flere passeringer inn samtidig, er det bare den
-siste som blir et punkt i sporet. Den komplette listen med koordinater ligger i
-attributtet `passings`.
-
-### Velge hvilke biler som vises
-
-Kartkortet har ingen avkrysning per bil. Derfor har hver bil bryteren
-**Vis på kart**. Når den er av, forsvinner bilen og passeringspunktene dens fra
-kartet. Valget huskes over omstarter. Legg bryterne i et Entiteter-kort ved
-siden av kartet, så kan du slå biler av og på derfra.
-
-### Alle passeringene på kartet
-
-Slå på **Vis alle passeringer på kartet** under ⚙ Konfigurer. Da får hver bil
-ett punkt per bomstasjon eller ferjekai den har passert de siste 45 dagene, med
-antall passeringer, sum og siste tidspunkt. Det blir ikke ett punkt per passering,
-for da ville hundrevis av markører ligget oppå hverandre. Legg til kilden
-`flyt` i kartkortet:
-
-```yaml
-geo_location_sources:
-  - source: flyt
-    label_mode: attribute
-    attribute: count          # antall passeringer på markøren
-```
 
 > 🔒 **Personvern:** Sporet og passeringspunktene viser omtrent hvor og når
 > bilene har kjørt. Tenk på det før du deler dashbord eller skjermbilder. Vil du
