@@ -205,21 +205,7 @@ Gå til **Innstillinger → Enheter og tjenester → Flyt bombrikke → ⚙ Konf
 **Vis alle passeringer på kartet** (*Show all passings on the map*) og lagre. Punktene dukker opp når
 integrasjonen har lastet inn på nytt, som skjer med en gang du lagrer.
 
-**2. Finn entitets-ID-ene**
-
-Gå til **Innstillinger → Enheter og tjenester → Entiteter**
-(*Settings → Devices & services → Entities*) og søk etter:
-
-| Søk etter | Entitet | Norsk ID | Engelsk ID |
-|---|---|---|---|
-| «posisjon» / «position» | Siste posisjon (*Last position*) | `device_tracker.ab12345_bilnavn_siste_posisjon` | `device_tracker.ab12345_bilnavn_last_position` |
-| «kart» / «map» | Vis på kart (*Show on map*) | `switch.ab12345_bilnavn_vis_pa_kart` | `switch.ab12345_bilnavn_show_on_map` |
-
-ID-ene lages av skiltnummer, bilmodell og navnet på entiteten, på det språket
-Home Assistant hadde da integrasjonen ble lagt til. Du trenger ikke skrive dem av:
-se tipset i trinn 3.
-
-**3. Lag kortet på et dashbord**
+**2. Lag kortet på et dashbord**
 
 Kortet må lages på et **dashbord**, ikke på *Kart*-siden (*Map*) i menyen (se
 [Hva du ser](#hva-du-ser)). Åpne dashbordet, trykk **✏️ Rediger → + Legg til kort**
@@ -249,19 +235,40 @@ cards:
       - switch.cd67890_bilnavn_vis_pa_kart
 ```
 
-> 💡 **Tips: Bytt til dine egne biler i den grafiske editoren.** Når koden er
-> limt inn, trykker du **Vis visuell editor** (*Show visual editor*). Kortet
-> får da to faner øverst:
-> - **1** er kartet. Trykk på hver bil og velg din egen *Siste posisjon*-entitet
->   fra listen. Med **+ Legg til entitet** (*Add entity*) får du med flere biler.
-> - **2** er bryterne. Bytt dem til dine *Vis på kart*-brytere på samme måte.
->
-> Da trenger du ikke vite entitets-ID-ene på forhånd. Biler du legger til med
-> **+ Legg til entitet** får ikke skiltnummer på markøren automatisk. Gå tilbake
-> til **Vis koderedigering** (*Show code editor*) og legg til `label_mode` og
-> `attribute` under dem, slik som for de andre bilene.
+Bilene i eksemplet (`ab12345`, `cd67890`) finnes ikke hos deg. Bytt dem ut med
+dine egne i neste trinn.
 
-Trykk **Lagre** (*Save*).
+**3. Bytt eksempelbilene med dine egne**
+
+Trykk **Vis visuell editor** (*Show visual editor*). Kortet får to faner øverst:
+
+- **1** er kartet. Trykk på hver eksempelbil og **bytt den** til din egen
+  *Siste posisjon*-entitet i listen.
+- **2** er bryterne. Bytt hver eksempelbryter til din egen *Vis på kart*-bryter.
+
+Entitetene er lette å kjenne igjen i listen. De heter skiltnummer og bil, fulgt
+av entitetsnavnet:
+
+| Hva | Navn i listen | Entitets-ID (norsk / engelsk) |
+|---|---|---|
+| Bilens posisjon | `AB12345 (Audi E-Tron 55) Siste posisjon` / `… Last position` | `device_tracker.…_siste_posisjon` / `…_last_position` |
+| Bryteren | `AB12345 (Audi E-Tron 55) Vis på kart` / `… Show on map` | `switch.…_vis_pa_kart` / `…_show_on_map` |
+
+Om norsk eller engelsk navn brukes, ser du under
+[Norsk eller engelsk Home Assistant](#norsk-eller-engelsk-home-assistant).
+
+> ⚠️ **Har du flere eller færre biler enn eksemplet?**
+> - **Færre:** Slett eksempelbilene du ikke bruker, både i fane 1 og fane 2.
+>   Ellers viser kortet en feil for entiteter som ikke finnes.
+> - **Flere:** Bytt først ut eksemplene, og legg til resten med
+>   **+ Legg til entitet** (*Add entity*). Bilene du legger til slik får ikke
+>   skiltnummer på markøren automatisk. Åpne **Vis koderedigering**
+>   (*Show code editor*) og kopier `label_mode` og `attribute` fra de andre bilene.
+
+Før du lagrer, trykker du **Vis koderedigering** (*Show code editor*) og sjekker
+at hver bil fortsatt har `label_mode: attribute` og
+`attribute: registration_number` under seg. Mangler de, viser markøren
+forbokstaver i stedet for skiltnummer. Trykk så **Lagre** (*Save*).
 
 **4. Velg hvilke biler som vises**
 
