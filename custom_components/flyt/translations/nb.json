@@ -43,21 +43,11 @@
         "title": "Flyt-innstillinger",
         "data": {
           "scan_interval": "Oppdateringsintervall (minutter)",
-          "show_all_passings": "Vis alle passeringer på kartet",
-          "show_stations": "Vis alle bomstasjoner med takster",
-          "station_radius_km": "Radius for bomstasjoner (km fra hjemmet)",
-          "show_estimates": "Vis estimert pris med rabatter",
-          "tag_discount_pct": "Brikkerabatt (%)",
-          "ev_share_pct": "Elbiltakst (% av fullpris)"
+          "show_all_passings": "Vis alle passeringer på kartet"
         },
         "description": "Hvor ofte nye passeringer hentes, og hva som vises på kart. 30 minutter eller mer anbefales. Passeringene kommer ofte inn hos Flyt timer eller dager etter at de skjedde, og svært hyppige oppslag mot et uoffisielt API kan føre til at kontoen blir strupet eller stengt ute.",
         "data_description": {
-          "show_all_passings": "Ett kartpunkt per bil og stasjon/ferjekai den har passert, med antall og sum. Bruk geo_location_sources: flyt i kartkortet.",
-          "show_stations": "Bomstasjoner fra NVDB med fullpris-takster. Bruk geo_location_sources: flyt_stations. Takstene kan ligge etter når priser endres. Fasiten er fakturaen.",
-          "station_radius_km": "Bare stasjoner innenfor denne avstanden fra hjemmeposisjonen din.",
-          "show_estimates": "Estimert pris per bil ut fra NVDB-taksten og satsene under. Flyt og bompengeselskapene gir ikke nødvendigvis rabatt på alle stasjoner, og timesregel og rushtid påvirker hva du betaler.",
-          "tag_discount_pct": "Vanligvis 20 % med gyldig brikkeavtale, men ikke på alle stasjoner.",
-          "ev_share_pct": "Andelen av fullpris elbiler betaler. Bestemmes per bompengeprosjekt, maks 70 % etter loven. Elbiler gjenkjennes fra kjøretøyregisteret."
+          "show_all_passings": "Ett kartpunkt per bil og stasjon/ferjekai den har passert, med antall og sum. Bruk geo_location_sources: flyt i kartkortet."
         }
       }
     }

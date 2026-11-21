@@ -75,8 +75,6 @@ class Obe:
     customer_name: str
     customer_number: str
     agreement_number: str | None
-    electric: bool = False
-    large: bool = False  # "stor bil" tariff (over 3.5 t)
     passings: list[Passing] = field(default_factory=list)  # newest first
 
     @property
@@ -263,10 +261,6 @@ class FlytCoordinator(DataUpdateCoordinator[FlytData]):
         self._index, self._index_fetched = index, now
         await self._store.async_save({"fetched": now.isoformat(), "index": index})
 
-    @property
-    def locations_index(self) -> dict[str, Any] | None:
-        return self._index
-
     async def _async_update_data(self) -> FlytData:
         try:
             return await self._fetch()
@@ -308,10 +302,6 @@ class FlytCoordinator(DataUpdateCoordinator[FlytData]):
                         customer_name=cname,
                         customer_number=cnum,
                         agreement_number=str(agr.get("agreementNumber")),
-                        # Vehicle register fuel code 5 = electricity
-                        electric=str(vehicle.get("fuelType") or "") == "5",
-                        large=(vehicle.get("size") or "Regular") != "Regular"
-                        or (vehicle.get("class") or "") in ("M2", "M3", "N2", "N3"),
                     )
 
         await self._ensure_locations()

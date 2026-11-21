@@ -105,11 +105,6 @@ Gå til **Innstillinger → Enheter og tjenester → Flyt bombrikke**.
 |---|---|---|
 | Oppdateringsintervall | 30 min | Hvor ofte nye data hentes fra Flyt (10–1440 minutter) |
 | Vis alle passeringer på kartet | av | Kartpunkt per bil og stasjon den har passert (se [Kart](#kart-over-bomstasjoner-og-ferjer)) |
-| Vis alle bomstasjoner med takster | av | Alle bomstasjoner fra NVDB innenfor radiusen, med takster |
-| Radius for bomstasjoner | 50 km | Avstand fra hjemmeposisjonen din i Home Assistant |
-| Vis estimert pris med rabatter | av | Estimert pris per bil på hver bomstasjon |
-| Brikkerabatt | 20 % | Rabatten som brukes i estimatet |
-| Elbiltakst | 70 % | Andelen av fullpris elbiler betaler i estimatet |
 
 Integrasjonen lastes inn på nytt når du lagrer.
 
@@ -224,36 +219,6 @@ geo_location_sources:
     label_mode: attribute
     attribute: count          # antall passeringer på markøren
 ```
-
-### Alle bomstasjoner med takster
-
-Slå på **Vis alle bomstasjoner med takster** og velg en radius. Da vises
-bomstasjonene fra NVDB i nærheten. Detaljvisningen for hver stasjon har takst
-for liten og stor bil, rushtidstakst og rushtider, timesregel og bompengeselskap.
-Bruk kilden `flyt_stations`:
-
-```yaml
-geo_location_sources:
-  - source: flyt_stations
-    label_mode: attribute
-    attribute: price          # fullpris liten bil
-    unit: kr
-```
-
-Med **Vis estimert pris med rabatter** får hver stasjon også attributtet
-`estimates`, med estimert pris og rushpris for hver av bilene dine. Estimatet
-bruker brikkerabatten og elbiltaksten du har valgt. Elbiler gjenkjennes fra
-kjøretøyregisteret (drivstoffkode 5), og kjøretøy over 3,5 tonn får stor bil-takst.
-
-> ⚠️ **Forbehold om takster og priser**
-> - Takstene kommer fra NVDB (Statens vegvesen). De er **fullpris før rabatter**
->   og kan ligge etter når bompengeselskapene endrer priser.
-> - Estimert pris er bare et **anslag**. Flyt og bompengeselskapene gir ikke
->   nødvendigvis brikkerabatt eller elbilrabatt på alle stasjoner, og satsene
->   varierer mellom bompengeprosjekter.
-> - Timesregel, rushtid og passeringstak påvirker hva du faktisk betaler.
-> - **Fasiten er alltid det Flyt fakturerer**, som du ser i sensorene og i
->   listen over passeringer.
 
 > 🔒 **Personvern:** Sporet og passeringspunktene viser omtrent hvor og når
 > bilene har kjørt. Tenk på det før du deler dashbord eller skjermbilder. Vil du

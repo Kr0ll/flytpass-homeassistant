@@ -20,17 +20,9 @@ from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 from .api import FlytAuthError, FlytClient, FlytError
 from .const import (
-    CONF_EV_SHARE,
     CONF_SCAN_INTERVAL,
     CONF_SHOW_ALL_PASSINGS,
-    CONF_SHOW_ESTIMATES,
-    CONF_SHOW_STATIONS,
-    CONF_STATION_RADIUS,
-    CONF_TAG_DISCOUNT,
-    DEFAULT_EV_SHARE_PCT,
     DEFAULT_SCAN_INTERVAL_MIN,
-    DEFAULT_STATION_RADIUS_KM,
-    DEFAULT_TAG_DISCOUNT_PCT,
     DOMAIN,
     MIN_SCAN_INTERVAL_MIN,
 )
@@ -146,7 +138,7 @@ class FlytConfigFlow(ConfigFlow, domain=DOMAIN):
 
 
 class FlytOptionsFlow(OptionsFlow):
-    """Options: polling interval and map/tariff settings."""
+    """Options: polling interval and map settings."""
 
     async def async_step_init(
         self, user_input: dict[str, Any] | None = None
@@ -154,10 +146,6 @@ class FlytOptionsFlow(OptionsFlow):
         if user_input is not None:
             return self.async_create_entry(data=user_input)
         o = self.config_entry.options
-
-        def pct() -> vol.All:
-            return vol.All(vol.Coerce(float), vol.Range(min=0, max=100))
-
         return self.async_show_form(
             step_id="init",
             data_schema=vol.Schema(
@@ -172,24 +160,6 @@ class FlytOptionsFlow(OptionsFlow):
                         CONF_SHOW_ALL_PASSINGS,
                         default=o.get(CONF_SHOW_ALL_PASSINGS, False),
                     ): bool,
-                    vol.Required(
-                        CONF_SHOW_STATIONS, default=o.get(CONF_SHOW_STATIONS, False)
-                    ): bool,
-                    vol.Required(
-                        CONF_STATION_RADIUS,
-                        default=o.get(CONF_STATION_RADIUS, DEFAULT_STATION_RADIUS_KM),
-                    ): vol.All(vol.Coerce(int), vol.Range(min=1, max=2000)),
-                    vol.Required(
-                        CONF_SHOW_ESTIMATES, default=o.get(CONF_SHOW_ESTIMATES, False)
-                    ): bool,
-                    vol.Required(
-                        CONF_TAG_DISCOUNT,
-                        default=o.get(CONF_TAG_DISCOUNT, DEFAULT_TAG_DISCOUNT_PCT),
-                    ): pct(),
-                    vol.Required(
-                        CONF_EV_SHARE,
-                        default=o.get(CONF_EV_SHARE, DEFAULT_EV_SHARE_PCT),
-                    ): pct(),
                 }
             ),
         )

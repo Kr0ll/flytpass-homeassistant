@@ -1,8 +1,6 @@
-"""Map points: your passings per station, and (optionally) all toll stations.
+"""Map points for your passings: one per vehicle and station/quay it passed.
 
-Two sources for the map card's `geo_location_sources`:
-- "flyt": one point per vehicle and station/quay it passed (last ~45 days)
-- "flyt_stations": every NVDB toll station within a radius, with tariffs
+Use `geo_location_sources: [flyt]` in the map card. Covers the last ~45 days.
 """
 
 from __future__ import annotations
@@ -17,28 +15,8 @@ from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.util.location import distance
 
-from .const import (
-    CONF_EV_SHARE,
-    CONF_SHOW_ALL_PASSINGS,
-    CONF_SHOW_ESTIMATES,
-    CONF_SHOW_STATIONS,
-    CONF_STATION_RADIUS,
-    CONF_TAG_DISCOUNT,
-    DEFAULT_EV_SHARE_PCT,
-    DEFAULT_STATION_RADIUS_KM,
-    DEFAULT_TAG_DISCOUNT_PCT,
-    GEO_SOURCE,
-    GEO_SOURCE_STATIONS,
-)
+from .const import CONF_SHOW_ALL_PASSINGS, GEO_SOURCE
 from .coordinator import FlytCoordinator
-from .locations import estimate_price, toll_stations
-
-DISCLAIMER = (
-    "Takster fra NVDB (Statens vegvesen), fullpris før rabatter. De kan ligge "
-    "etter når priser endres. Estimert pris er regnet med satsene du har valgt. "
-    "Flyt og bompengeselskapene gir ikke nødvendigvis rabatt på alle stasjoner, "
-    "og timesregel og rushtid påvirker hva du betaler. Fasiten er fakturaen."
-)
 
 
 async def async_setup_entry(
@@ -120,8 +98,6 @@ class _GeoManager:
         wanted: Wanted = {}
         if self.opts.get(CONF_SHOW_ALL_PASSINGS):
             self._passing_points(wanted)
-        if self.opts.get(CONF_SHOW_STATIONS):
-            self._station_points(wanted)
 
         new: list[FlytGeoPoint] = []
         for key, (factory, attrs) in wanted.items():
@@ -155,52 +131,6 @@ class _GeoManager:
             wanted[f"p|{key}"] = (
                 lambda n=name, i=icon, a=attrs, s=sp, d=dist: FlytGeoPoint(
                     GEO_SOURCE, n, i, s.latitude, s.longitude, d, a
-                ),
-                attrs,
-            )
-
-    def _station_points(self, wanted: Wanted) -> None:
-        radius = float(self.opts.get(CONF_STATION_RADIUS, DEFAULT_STATION_RADIUS_KM))
-        estimates = self.opts.get(CONF_SHOW_ESTIMATES)
-        tag = float(self.opts.get(CONF_TAG_DISCOUNT, DEFAULT_TAG_DISCOUNT_PCT))
-        ev = float(self.opts.get(CONF_EV_SHARE, DEFAULT_EV_SHARE_PCT))
-        data = self.coordinator.data
-        cars = [o for o in (data.obes.values() if data else []) if o.status == "Active"]
-
-        for lat, lon, name, info in toll_stations(self.coordinator.locations_index):
-            dist = self._km(lat, lon)
-            if dist is None or dist > radius:
-                continue
-            attrs: dict[str, Any] = {k: v for k, v in info.items() if v is not None}
-            attrs["price"] = info.get("price_small")  # handy for label_mode
-            if estimates:
-                attrs["estimates"] = [
-                    {
-                        "vehicle": o.registration_number or o.obe_number,
-                        "price": estimate_price(
-                            info.get("price_large" if o.large else "price_small"),
-                            o.electric,
-                            tag,
-                            ev,
-                        ),
-                        "rush_price": estimate_price(
-                            info.get(
-                                "rush_price_large" if o.large else "rush_price_small"
-                            ),
-                            o.electric,
-                            tag,
-                            ev,
-                        ),
-                    }
-                    for o in cars
-                ]
-                attrs["estimate_basis"] = (
-                    f"Brikkerabatt {tag:g} %, elbil {ev:g} % av fullpris"
-                )
-            attrs["disclaimer"] = DISCLAIMER
-            wanted[f"s|{lat:.5f},{lon:.5f}|{name}"] = (
-                lambda n=name, a=attrs, la=lat, lo=lon, d=dist: FlytGeoPoint(
-                    GEO_SOURCE_STATIONS, n, "mdi:cash-marker", la, lo, d, a
                 ),
                 attrs,
             )
