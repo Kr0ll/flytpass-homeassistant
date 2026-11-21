@@ -275,6 +275,9 @@ fra kartet. Valget huskes over omstarter.
 - **Markør med et tall:** en bomstasjon eller ferjekai bilen har passert de
   siste 45 dagene. Tallet er antall passeringer der. Én bil som har kjørt samme
   bom ti ganger, gir ett punkt med «10», ikke ti punkter.
+- **Hold musen over** et passeringspunkt for å se stasjon, bil og tidspunkt for
+  siste passering der, for eksempel
+  «Kroppan bru (Nordgående), M-snitt · AB12345 · 20.11 14:33».
 - **Strek bak bilen:** sporet fra `hours_to_show`. Det bygges av posisjonene Home
   Assistant har sett ved hver oppdatering. Kommer flere passeringer inn samtidig,
   blir bare den siste et punkt i sporet.

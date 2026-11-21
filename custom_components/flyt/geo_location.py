@@ -29,7 +29,7 @@ async def async_setup_entry(
 
 
 class FlytGeoPoint(GeolocationEvent):
-    """A point on the map with a fixed position and changing attributes."""
+    """A point on the map with a fixed position; name and attributes may change."""
 
     _attr_should_poll = False
     _attr_unit_of_measurement = UnitOfLength.KILOMETERS
@@ -61,14 +61,16 @@ class FlytGeoPoint(GeolocationEvent):
         return self._attrs
 
     @callback
-    def refresh(self, attrs: dict[str, Any]) -> None:
-        if attrs != self._attrs:
+    def refresh(self, name: str, attrs: dict[str, Any]) -> None:
+        if attrs != self._attrs or name != self._attr_name:
             self._attrs = attrs
+            self._attr_name = name
             if self.hass:
                 self.async_write_ha_state()
 
 
-Wanted = dict[str, tuple[Callable[[], FlytGeoPoint], dict[str, Any]]]
+# key -> (factory for a new point, name, attributes)
+Wanted = dict[str, tuple[Callable[[], FlytGeoPoint], str, dict[str, Any]]]
 
 
 class _GeoManager:
@@ -100,9 +102,9 @@ class _GeoManager:
             self._passing_points(wanted)
 
         new: list[FlytGeoPoint] = []
-        for key, (factory, attrs) in wanted.items():
+        for key, (factory, name, attrs) in wanted.items():
             if key in self.points:
-                self.points[key].refresh(attrs)
+                self.points[key].refresh(name, attrs)
             else:
                 self.points[key] = point = factory()
                 new.append(point)
@@ -125,12 +127,17 @@ class _GeoManager:
                 "currency": sp.currency,
                 "last_passing": sp.last_time.isoformat(),
             }
-            name = f"{sp.name} · {sp.registration_number or sp.obe_number}"
+            # Shown as the marker's hover text: station · car · last passing
+            name = (
+                f"{sp.name} · {sp.registration_number or sp.obe_number}"
+                f" · {sp.last_time.strftime('%d.%m %H:%M')}"
+            )
             icon = "mdi:ferry" if sp.kind == "ferry" else "mdi:boom-gate"
             dist = self._km(sp.latitude, sp.longitude)
             wanted[f"p|{key}"] = (
                 lambda n=name, i=icon, a=attrs, s=sp, d=dist: FlytGeoPoint(
                     GEO_SOURCE, n, i, s.latitude, s.longitude, d, a
                 ),
+                name,
                 attrs,
             )
