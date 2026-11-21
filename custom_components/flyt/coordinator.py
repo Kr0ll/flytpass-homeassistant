@@ -113,22 +113,38 @@ class FlytData:
 
 
 @dataclass
+class StationVisit:
+    """One passing at a station, for the map point's list."""
+
+    time: datetime
+    registration_number: str
+    price: float
+    currency: str
+
+
+@dataclass
 class StationPoint:
-    """All passings of one vehicle at one toll station or ferry quay."""
+    """All passings at one toll station or ferry quay, for all visible vehicles."""
 
     key: str
-    obe_number: str
-    registration_number: str | None
-    vehicle_name: str | None
     name: str  # NVDB name of the station/quay
     station: str | None  # Flyt's name
     kind: str
     latitude: float
     longitude: float
-    count: int
-    total: float
-    currency: str
-    last_time: datetime
+    visits: list[StationVisit] = field(default_factory=list)  # newest first
+
+    @property
+    def count(self) -> int:
+        return len(self.visits)
+
+    @property
+    def total(self) -> float:
+        return round(sum(v.price for v in self.visits), 2)
+
+    @property
+    def last_time(self) -> datetime:
+        return self.visits[0].time
 
 
 def _parse_passing(
@@ -203,37 +219,38 @@ class FlytCoordinator(DataUpdateCoordinator[FlytData]):
         self.async_update_listeners()
 
     def station_points(self) -> dict[str, StationPoint]:
-        """Located passings grouped per vehicle and station, visible cars only."""
+        """Located passings grouped per station, for vehicles shown on the map."""
         points: dict[str, StationPoint] = {}
         if not self.data:
             return points
         for obe in self.data.obes.values():
             if obe.status != "Active" or not self.is_on_map(obe.obe_number):
                 continue
-            for p in obe.passings:  # newest first
+            for p in obe.passings:
                 if p.latitude is None or p.longitude is None:
                     continue
-                key = f"{obe.obe_number}|{p.latitude:.5f},{p.longitude:.5f}"
-                point = points.get(key)
-                if point is None:
-                    points[key] = StationPoint(
+                key = f"{p.latitude:.5f},{p.longitude:.5f}"
+                point = points.setdefault(
+                    key,
+                    StationPoint(
                         key=key,
-                        obe_number=obe.obe_number,
-                        registration_number=obe.registration_number,
-                        vehicle_name=obe.vehicle_name,
                         name=p.location_name or p.station or "",
                         station=p.station,
                         kind=p.kind,
                         latitude=p.latitude,
                         longitude=p.longitude,
-                        count=1,
-                        total=p.price,
+                    ),
+                )
+                point.visits.append(
+                    StationVisit(
+                        time=p.time,
+                        registration_number=obe.registration_number or obe.obe_number,
+                        price=p.price,
                         currency=p.currency,
-                        last_time=p.time,
                     )
-                else:
-                    point.count += 1
-                    point.total = round(point.total + p.price, 2)
+                )
+        for point in points.values():
+            point.visits.sort(key=lambda v: v.time, reverse=True)
         return points
 
     async def _ensure_locations(self) -> None:

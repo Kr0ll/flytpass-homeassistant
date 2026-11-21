@@ -137,7 +137,7 @@ Gå til **Innstillinger → Enheter og tjenester → Flyt bombrikke**
 | Valg | English | Standard | Beskrivelse |
 |---|---|---|---|
 | Oppdateringsintervall | Polling interval | 30 min | Hvor ofte nye data hentes fra Flyt (10–1440 minutter) |
-| Vis alle passeringer på kartet | Show all passings on the map | av | Kartpunkt per bil og stasjon den har passert (se [Kart](#kart-over-passeringene)) |
+| Vis alle passeringer på kartet | Show all passings on the map | av | Kartpunkt per bomstasjon og ferjekai bilene har passert (se [Kart](#kart-over-passeringene)) |
 
 Integrasjonen lastes inn på nytt når du lagrer.
 
@@ -279,17 +279,25 @@ fra kartet. Valget huskes over omstarter.
 ### Hva du ser
 
 - **Markør med skiltnummer:** hvor bilen sist passerte en bom eller ferjekai.
-- **Markør med et tall:** en bomstasjon eller ferjekai bilen har passert de
-  siste 45 dagene. Tallet er antall passeringer der. Én bil som har kjørt samme
-  bom ti ganger, gir ett punkt med «10», ikke ti punkter.
-- **Hold musen over** et passeringspunkt for å se stasjon, bil og tidspunkt for
-  siste passering der, for eksempel
-  «Kroppan bru (Nordgående), M-snitt · AB12345 · 20.11 14:33».
+- **Markør med et tall:** en bomstasjon eller ferjekai som bilene dine har
+  passert de siste 45 dagene. Tallet er antall passeringer der, **for alle
+  bilene samlet**. Har to biler passert samme bom til sammen ti ganger, får du ett
+  punkt med «10». Biler som har *Vis på kart* av, telles ikke med.
+- **Hold musen over** et passeringspunkt for å se stasjonen og de fem nyeste
+  passeringene der med tid og bil. Er det flere, står resten som «(+antall)»:
+  «Klett - Rv.707, S-snitt · 20.11 08:05 AB12345, 19.11 17:05 CD67890, … (+3)».
 - **Strek bak bilen:** sporet fra `hours_to_show`. Det bygges av posisjonene Home
   Assistant har sett ved hver oppdatering. Kommer flere passeringer inn samtidig,
   blir bare den siste et punkt i sporet.
-- **Trykk på en markør** for detaljer (*Attributes*): stasjon, bil, type (bom eller ferje),
-  antall, sum og tidspunkt for siste passering.
+- **Trykk på en markør** og deretter **⋮ → Attributter** (*Attributes*) øverst
+  til høyre for hele listen:
+  - `passings`: alle passeringene der, én linje hver
+    («20.11 08:05 · AB12345 · 12.32 kr»)
+  - `vehicles`: antall og sum per bil («AB12345: 6× · 73.92 kr»)
+  - `count`, `total`, `kind` (bom eller ferje) og tidspunkt for siste passering
+
+  Grafen du ser først i detaljvisningen, er avstanden fra hjemmet. Den viser
+  Home Assistant for alle kartpunkter, og den kan ikke integrasjonen endre.
 
 > **Kart-siden i menyen** (*Map*) viser automatisk alle entiteter med posisjon, også
 > passeringspunktene. Der kan du ikke velge hva markørene viser, så de får

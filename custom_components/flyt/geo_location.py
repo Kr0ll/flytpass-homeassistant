@@ -1,5 +1,6 @@
 """Map points for your passings: one per vehicle and station/quay it passed.
 
+One point per station/quay, for all vehicles that are shown on the map.
 Use `geo_location_sources: [flyt]` in the map card. Covers the last ~45 days.
 """
 
@@ -16,7 +17,49 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.util.location import distance
 
 from .const import CONF_SHOW_ALL_PASSINGS, GEO_SOURCE
-from .coordinator import FlytCoordinator
+from .coordinator import FlytCoordinator, StationPoint
+
+HOVER_ITEMS = 5  # newest passings listed in the hover text
+
+
+def _fmt_price(value: float, currency: str) -> str:
+    unit = "kr" if currency == "NOK" else currency
+    return f"{value:.2f} {unit}"
+
+
+def point_name(sp: StationPoint) -> str:
+    """Hover text: station, then the newest passings with time and car."""
+    items = ", ".join(
+        f"{v.time.strftime('%d.%m %H:%M')} {v.registration_number}"
+        for v in sp.visits[:HOVER_ITEMS]
+    )
+    rest = sp.count - HOVER_ITEMS
+    return f"{sp.name} · {items}" + (f" (+{rest})" if rest > 0 else "")
+
+
+def point_attributes(sp: StationPoint) -> dict[str, Any]:
+    """Readable lines for the details view (⋮ → Attributes)."""
+    cars: dict[str, list[float]] = {}
+    for v in sp.visits:
+        cars.setdefault(v.registration_number, []).append(v.price)
+    currency = sp.visits[0].currency
+    return {
+        "station": sp.station,
+        "kind": sp.kind,
+        "count": sp.count,
+        "total": sp.total,
+        "currency": currency,
+        "last_passing": sp.last_time.isoformat(),
+        "vehicles": [
+            f"{reg}: {len(prices)}× · {_fmt_price(sum(prices), currency)}"
+            for reg, prices in cars.items()
+        ],
+        "passings": [
+            f"{v.time.strftime('%d.%m %H:%M')} · {v.registration_number} · "
+            f"{_fmt_price(v.price, v.currency)}"
+            for v in sp.visits
+        ],
+    }
 
 
 async def async_setup_entry(
@@ -33,6 +76,8 @@ class FlytGeoPoint(GeolocationEvent):
 
     _attr_should_poll = False
     _attr_unit_of_measurement = UnitOfLength.KILOMETERS
+    # The lists change often and can be long; keep them out of the database
+    _unrecorded_attributes = frozenset({"passings", "vehicles"})
 
     def __init__(
         self,
@@ -117,21 +162,8 @@ class _GeoManager:
 
     def _passing_points(self, wanted: Wanted) -> None:
         for key, sp in self.coordinator.station_points().items():
-            attrs = {
-                "registration_number": sp.registration_number,
-                "vehicle": sp.vehicle_name,
-                "station": sp.station,
-                "kind": sp.kind,
-                "count": sp.count,
-                "total": sp.total,
-                "currency": sp.currency,
-                "last_passing": sp.last_time.isoformat(),
-            }
-            # Shown as the marker's hover text: station · car · last passing
-            name = (
-                f"{sp.name} · {sp.registration_number or sp.obe_number}"
-                f" · {sp.last_time.strftime('%d.%m %H:%M')}"
-            )
+            attrs = point_attributes(sp)
+            name = point_name(sp)
             icon = "mdi:ferry" if sp.kind == "ferry" else "mdi:boom-gate"
             dist = self._km(sp.latitude, sp.longitude)
             wanted[f"p|{key}"] = (
