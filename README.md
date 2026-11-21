@@ -289,15 +289,18 @@ fra kartet. Valget huskes over omstarter.
 - **Strek bak bilen:** sporet fra `hours_to_show`. Det bygges av posisjonene Home
   Assistant har sett ved hver oppdatering. Kommer flere passeringer inn samtidig,
   blir bare den siste et punkt i sporet.
-- **Trykk på en markør** og deretter **⋮ → Attributter** (*Attributes*) øverst
-  til høyre for hele listen:
+- **Trykk på en markør** og deretter **⋮ → Detaljer** (*Details*) øverst til
+  høyre for hele listen:
   - `passings`: alle passeringene der, én linje hver
     («20.11 08:05 · AB12345 · 12.32 kr»)
   - `vehicles`: antall og sum per bil («AB12345: 6× · 73.92 kr»)
   - `count`, `total`, `kind` (bom eller ferje) og tidspunkt for siste passering
 
-  Grafen du ser først i detaljvisningen, er avstanden fra hjemmet. Den viser
-  Home Assistant for alle kartpunkter, og den kan ikke integrasjonen endre.
+  Grafen du ser først i detaljvisningen (en flat strek med *km*), er avstanden
+  fra hjemmet ditt til stasjonen. Home Assistant bruker alltid avstanden som
+  tilstand for kartpunkter og viser historikken for den. Siden stasjonen ikke
+  flytter seg, blir streken flat. Den har ingen nytte her, men integrasjonen kan
+  ikke skjule den.
 
 > **Kart-siden i menyen** (*Map*) viser automatisk alle entiteter med posisjon, også
 > passeringspunktene. Der kan du ikke velge hva markørene viser, så de får

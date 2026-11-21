@@ -38,7 +38,7 @@ def point_name(sp: StationPoint) -> str:
 
 
 def point_attributes(sp: StationPoint) -> dict[str, Any]:
-    """Readable lines for the details view (⋮ → Attributes)."""
+    """Readable lines for the details view (⋮ → Details)."""
     cars: dict[str, list[float]] = {}
     for v in sp.visits:
         cars.setdefault(v.registration_number, []).append(v.price)
